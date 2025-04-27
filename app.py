@@ -54,9 +54,9 @@ stock_data.iloc[50:, stock_data.columns.get_loc('Signal')] = np.where(
 
 # Calculate returns based on the Signal column
 # Ensure alignment by handling NaNs properly
-stock_data['Returns'] = stock_data['Close'].pct_change() * stock_data['Signal'].shift(1)
+stock_data['Returns'] = stock_data['Close'].pct_change().shift(-1) * stock_data['Signal']
 
-# Handle any NaN values that could arise from shifting
+# Fill NaN values (arising from pct_change() and shifting)
 stock_data['Returns'].fillna(0, inplace=True)
 
 # Calculate cumulative returns from the strategy
