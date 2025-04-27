@@ -1,7 +1,7 @@
 # backtest_engine.py
 import backtrader as bt
 import matplotlib
-matplotlib.use('Agg')  # important to prevent Tk errors
+matplotlib.use('Agg')  # Important for Streamlit!
 import matplotlib.pyplot as plt
 import io
 
@@ -12,12 +12,12 @@ class FactorBasedStrategy(bt.Strategy):
     )
 
     def __init__(self):
-        pass  # We'll just use dummy buy/sell rules for now
+        pass
 
     def next(self):
         if not self.position:
             self.buy()
-        elif self.data.close[0] < self.data.close[-1]:  # simple condition
+        elif self.data.close[0] < self.data.close[-1]:
             self.sell()
 
 def run_backtest(data, factor="PERatio", ascending=True):
