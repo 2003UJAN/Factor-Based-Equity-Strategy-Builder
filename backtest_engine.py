@@ -1,6 +1,24 @@
 # backtest_engine.py
 import backtrader as bt
-from strategy import FactorBasedStrategy
+import matplotlib
+matplotlib.use('Agg')  # important to prevent Tk errors
+import matplotlib.pyplot as plt
+import io
+
+class FactorBasedStrategy(bt.Strategy):
+    params = dict(
+        factor='PERatio',
+        ascending=True,
+    )
+
+    def __init__(self):
+        pass  # We'll just use dummy buy/sell rules for now
+
+    def next(self):
+        if not self.position:
+            self.buy()
+        elif self.data.close[0] < self.data.close[-1]:  # simple condition
+            self.sell()
 
 def run_backtest(data, factor="PERatio", ascending=True):
     cerebro = bt.Cerebro()
@@ -12,8 +30,13 @@ def run_backtest(data, factor="PERatio", ascending=True):
     cerebro.broker.set_cash(100000.0)
     cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name="sharpe")
     cerebro.addanalyzer(bt.analyzers.Returns, _name="returns")
+
     results = cerebro.run()
     sharpe = results[0].analyzers.sharpe.get_analysis()
     returns = results[0].analyzers.returns.get_analysis()
 
-    return cerebro, sharpe, returns
+    buf = io.BytesIO()
+    cerebro.plot(style='candlestick')[0][0].savefig(buf, format='png')
+    buf.seek(0)
+
+    return buf, sharpe, returns
