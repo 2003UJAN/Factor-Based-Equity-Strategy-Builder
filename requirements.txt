@@ -3,4 +3,5 @@ pandas
 yfinance
 backtrader
 matplotlib
+fpdf
 Pillow
