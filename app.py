@@ -1,82 +1,53 @@
-# app.py
 import streamlit as st
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from utils import fetch_price_data, load_uploaded_data
+import pandas as pd
+from utils import fetch_price_data, fetch_fundamental_data
 from backtest_engine import run_backtest
-from report_generator import generate_report
-from PIL import Image
-import datetime
+from ml_model import train_predict
+from optimizer import optimize_strategy
+import plotly.graph_objects as go
 
-st.set_page_config(page_title="💥 Factor-Based Strategy Builder", page_icon="📈", layout="wide")
-st.title("💥 Factor-Based Equity Strategy Builder")
-st.markdown("Build, backtest, and export your factor strategies with professional reports!")
+st.set_page_config(page_title="📈 Factor Strategy Builder", page_icon="📈", layout="wide")
 
-# Sidebar 🎛️
-st.sidebar.header("Configuration 🎛️")
+st.title("📈 Factor-Based Equity Strategy Builder")
 
-source = st.sidebar.radio("Data Source", ["Yahoo Finance", "Upload CSV"])
+ticker = st.text_input("Enter Stock Ticker (e.g., AAPL, MSFT)", value="AAPL")
 
-if source == "Yahoo Finance":
-    symbol = st.sidebar.text_input("Stock Symbol (e.g., AAPL)", value="AAPL")
-    col1, col2 = st.sidebar.columns(2)
-    start_date = col1.date_input("Start Date", value=datetime.date(2020, 1, 1))
-    end_date = col2.date_input("End Date", value=datetime.date(2023, 1, 1))
-else:
-    uploaded_file = st.sidebar.file_uploader("Upload your CSV", type=["csv"])
-    symbol = "Custom Dataset"
-    start_date = None
-    end_date = None
+col1, col2 = st.columns(2)
+start_date = col1.date_input("Start Date", pd.to_datetime('2018-01-01'))
+end_date = col2.date_input("End Date", pd.to_datetime('2023-12-31'))
 
-factor = st.sidebar.selectbox("Factor", ["PERatio", "EVtoEBITDA", "PriceToBook"])
-ascending = st.sidebar.radio("Factor Order", ["Ascending", "Descending"]) == "Ascending"
+factor = st.selectbox("Choose Factor", ["PERatio", "EVtoEBITDA", "PriceToBook"])
+ascending = st.radio("Factor Sorting", ["Low to High", "High to Low"]) == "Low to High"
 
-run_button = st.sidebar.button("🚀 Run Backtest")
-
-if run_button:
+if st.button("🚀 Run Backtest"):
     try:
-        with st.spinner("Fetching data and running backtest..."):
-            if source == "Yahoo Finance":
-                data = fetch_price_data(symbol, start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'))
-                benchmark_data = fetch_price_data("SPY", start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'))
-            else:
-                data = load_uploaded_data(uploaded_file)
-                benchmark_data = None
+        data = fetch_price_data(ticker, start_date, end_date)
+        fundamentals = fetch_fundamental_data(ticker)
+        results, sharpe, total_return = run_backtest(data, fundamentals, factor, ascending)
+        
+        st.success("Backtest Completed!")
 
-            buf, sharpe, returns = run_backtest(data, factor=factor, ascending=ascending, benchmark_data=benchmark_data)
+        # Metrics
+        st.metric(label="📈 Sharpe Ratio", value=f"{sharpe.get('sharperatio', 'N/A'):.2f}")
+        st.metric(label="💰 Total Return", value=f"{total_return:.2f}%")
 
-        st.subheader("📊 Backtest Results")
+        # Interactive Chart
+        st.subheader("📊 Interactive Equity Curve")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=results.index, y=results['equity_curve'], mode='lines', name='Equity Curve'))
+        fig.update_layout(title="Equity Curve", xaxis_title="Date", yaxis_title="Portfolio Value")
+        st.plotly_chart(fig, use_container_width=True)
 
-        col1, col2 = st.columns(2)
-        with col1:
-            sharpe_ratio = sharpe.get('sharperatio', 0)
-            st.metric(label="Sharpe Ratio 📈", value=f"{sharpe_ratio:.2f}")
+        # ML Model
+        st.subheader("🧠 ML Model Accuracy")
+        accuracy = train_predict(data)
+        st.metric(label="Prediction Accuracy 🎯", value=f"{accuracy*100:.2f}%")
 
-        with col2:
-            total_return = returns.get('rtot', 0) * 100
-            st.metric(label="Total Return 💰", value=f"{total_return:.2f}%")
-
-        st.subheader("📈 Equity Curve")
-        image = Image.open(buf)
-        st.image(image, caption='Backtest Plot', use_column_width=True)
-
-        st.success("✅ Backtest Completed!")
-
-        # Report download button
-        st.subheader("📄 Download Report")
-        report_path = generate_report(symbol, sharpe_ratio, total_return)
-        with open(report_path, "rb") as file:
-            btn = st.download_button(
-                label="Download Report PDF",
-                data=file,
-                file_name="backtest_report.pdf",
-                mime="application/pdf"
-            )
+        # Optimizer
+        if st.button("🔍 Find Best Strategy"):
+            with st.spinner("Optimizing..."):
+                best_params, best_score = optimize_strategy(data)
+            st.success(f"Best Factor: {best_params[0]} | Ascending: {best_params[1]} | Sharpe: {best_score:.2f}")
 
     except Exception as e:
         st.error(f"Error: {e}")
-
-else:
-    st.info("👈 Configure your parameters and click **Run Backtest** to start!")
