@@ -84,8 +84,9 @@ if run_button:
     # Calculate cumulative returns from the strategy
     stock_data['Cumulative Returns'] = (1 + stock_data['Returns']).cumprod()
 
-    # Display Total Return
-    st.write(f"Total Return: {stock_data['Cumulative Returns'][-1]:.2%}")
+    # Display Total Return (last cumulative return value)
+    total_return = stock_data['Cumulative Returns'].iloc[-1] - 1  # Subtract 1 to show net return
+    st.write(f"Total Return: {total_return:.2%}")
 
     # Plot the stock price, moving averages, and cumulative returns
     fig1 = plot_stock_data(stock_data, ticker)
