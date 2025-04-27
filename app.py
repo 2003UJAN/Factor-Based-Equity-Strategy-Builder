@@ -43,51 +43,53 @@ def plot_cumulative_returns(stock_data, ticker):
 st.title("Factor-Based Equity Strategy Builder")
 
 # Sidebar for user inputs
-tickers_input = st.sidebar.text_input("Enter Stock Tickers (comma-separated)", "MSFT,AAPL")
+tickers = ['MSFT', 'AAPL', 'GOOG', 'AMZN', 'TSLA', 'NFLX', 'META', 'SPY']  # List of tickers
+selected_ticker = st.sidebar.selectbox("Select Stock Ticker", tickers)
 start_date = st.sidebar.date_input("Start Date", pd.to_datetime("2020-01-01"))
 end_date = st.sidebar.date_input("End Date", pd.to_datetime("2021-01-01"))
 run_button = st.sidebar.button("Run Backtest")
 
 if run_button:
-    tickers = tickers_input.split(",")
-    
-    # Loop through each ticker and perform analysis
-    for ticker in tickers:
-        st.write(f"### Backtest Results for {ticker.strip()}")
-        
-        # Fetching stock data
-        stock_data = fetch_price_data(ticker.strip(), start_date, end_date)
-        
-        # Fetch and display fundamental data
-        fundamental_data = fetch_fundamental_data(ticker.strip())
-        st.write(f"#### Fundamental Data for {ticker.strip()}")
-        st.write(f"Price-to-Earnings (P/E) Ratio: {fundamental_data['PERatio']}")
-        st.write(f"EV/EBITDA Ratio: {fundamental_data['EVtoEBITDA']}")
-        st.write(f"Price-to-Book Ratio: {fundamental_data['PriceToBook']}")
+    ticker = selected_ticker  # Use the selected ticker from the dropdown
 
-        # Calculate Moving Averages
-        stock_data['MA50'] = stock_data['Close'].rolling(window=50).mean()
-        stock_data['MA200'] = stock_data['Close'].rolling(window=200).mean()
+    st.write(f"### Backtest Results for {ticker}")
 
-        # Initialize Signal column
-        stock_data['Signal'] = 0
-        stock_data.iloc[50:, stock_data.columns.get_loc('Signal')] = np.where(
-            stock_data['MA50'][50:] > stock_data['MA200'][50:], 1, 0
-        )
+    # Fetching stock data
+    stock_data = fetch_price_data(ticker, start_date, end_date)
 
-        # Calculate returns based on the Signal column
-        stock_data['Returns'] = stock_data['Close'].pct_change().shift(-1) * stock_data['Signal']
-        stock_data['Returns'].fillna(0, inplace=True)
+    # Fetch and display fundamental data
+    fundamental_data = fetch_fundamental_data(ticker)
+    st.write(f"#### Fundamental Data for {ticker}")
+    st.write(f"Price-to-Earnings (P/E) Ratio: {fundamental_data['PERatio']}")
+    st.write(f"EV/EBITDA Ratio: {fundamental_data['EVtoEBITDA']}")
+    st.write(f"Price-to-Book Ratio: {fundamental_data['PriceToBook']}")
 
-        # Calculate cumulative returns from the strategy
-        stock_data['Cumulative Returns'] = (1 + stock_data['Returns']).cumprod()
+    # Calculate Moving Averages
+    stock_data['MA50'] = stock_data['Close'].rolling(window=50).mean()
+    stock_data['MA200'] = stock_data['Close'].rolling(window=200).mean()
 
-        # Display Total Return
-        st.write(f"Total Return: {stock_data['Cumulative Returns'][-1]:.2%}")
+    # Initialize Signal column
+    stock_data['Signal'] = 0
+    stock_data.iloc[50:, stock_data.columns.get_loc('Signal')] = np.where(
+        stock_data['MA50'][50:] > stock_data['MA200'][50:], 1, 0
+    )
 
-        # Plot the stock price, moving averages and cumulative returns
-        fig1 = plot_stock_data(stock_data, ticker)
-        st.pyplot(fig1)
+    # Calculate Returns based on the Signal column
+    stock_data['Returns'] = stock_data['Close'].pct_change()
+    stock_data['Returns'] = stock_data['Returns'].shift(-1) * stock_data['Signal']
 
-        fig2 = plot_cumulative_returns(stock_data, ticker)
-        st.pyplot(fig2)
+    # Fill NaN values in Returns
+    stock_data['Returns'].fillna(0, inplace=True)
+
+    # Calculate cumulative returns from the strategy
+    stock_data['Cumulative Returns'] = (1 + stock_data['Returns']).cumprod()
+
+    # Display Total Return
+    st.write(f"Total Return: {stock_data['Cumulative Returns'][-1]:.2%}")
+
+    # Plot the stock price, moving averages, and cumulative returns
+    fig1 = plot_stock_data(stock_data, ticker)
+    st.pyplot(fig1)
+
+    fig2 = plot_cumulative_returns(stock_data, ticker)
+    st.pyplot(fig2)
