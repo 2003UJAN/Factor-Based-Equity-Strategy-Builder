@@ -3,3 +3,4 @@ alpha_vantage
 streamlit
 pandas
 python-dotenv
+matplotlib
