@@ -1,42 +1,39 @@
+import requests
 import os
-from dotenv import load_dotenv
-import yfinance as yf
-from alpha_vantage.fundamentaldata import FundamentalData
 
-# Load environment variables from .env file
-load_dotenv()
-
-# Fetch API key from environment variable
-ALPHA_VANTAGE_API_KEY = os.getenv('ALPHA_VANTAGE_API_KEY')
-
-if ALPHA_VANTAGE_API_KEY is None:
-    raise ValueError("API Key not found. Please set the ALPHA_VANTAGE_API_KEY environment variable.")
-
-def fetch_price_data(ticker, start_date, end_date):
-    """Fetch stock price data for a given ticker from Yahoo Finance."""
-    df = yf.download(ticker, start=start_date, end=end_date)
-    df = df[['Close']].rename(columns={"Close": "close"})
-    return df
-
+# Function to fetch real-time fundamental data from Alpha Vantage
 def fetch_fundamental_data(ticker):
-    """Fetch fundamental data for a given ticker from Alpha Vantage."""
-    fd = FundamentalData(ALPHA_VANTAGE_API_KEY, output_format='pandas')
+    api_key = os.getenv('ALPHA_VANTAGE_API_KEY')  # Get your Alpha Vantage API key from environment variable
     
-    try:
-        # Fetch company overview (fundamentals like P/E ratio, EV/EBITDA, etc.)
-        data, _ = fd.get_company_overview(ticker)
+    # URL for the Alpha Vantage fundamental data API
+    url = f"https://www.alphavantage.co/query"
+    
+    # Parameters for fundamental data (Company Overview)
+    params = {
+        'function': 'OVERVIEW',
+        'symbol': ticker,
+        'apikey': api_key
+    }
+    
+    # Send request to Alpha Vantage API
+    response = requests.get(url, params=params)
+    
+    if response.status_code == 200:
+        data = response.json()
         
-        fundamentals = {
-            "PERatio": data["PERatio"].iloc[0],
-            "EVtoEBITDA": data["EVtoEBITDA"].iloc[0],
-            "PriceToBook": data["PriceToBook"].iloc[0]
-        }
-        return fundamentals
-    except Exception as e:
-        print(f"Error fetching fundamental data for {ticker}: {e}")
-        # Return mock data in case of an error
+        # Extract fundamental data
+        pe_ratio = float(data.get("PERatio", 0))
+        ev_to_ebitda = float(data.get("EVToEBITDA", 0))
+        price_to_book = float(data.get("PriceToBookRatio", 0))
+        
         return {
-            "PERatio": 15,
-            "EVtoEBITDA": 12,
-            "PriceToBook": 3
+            "PERatio": pe_ratio,
+            "EVtoEBITDA": ev_to_ebitda,
+            "PriceToBook": price_to_book
+        }
+    else:
+        return {
+            "PERatio": 0,
+            "EVtoEBITDA": 0,
+            "PriceToBook": 0
         }
