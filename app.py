@@ -53,7 +53,11 @@ stock_data.iloc[50:, stock_data.columns.get_loc('Signal')] = np.where(
 )
 
 # Calculate returns based on the Signal column
+# Ensure alignment by handling NaNs properly
 stock_data['Returns'] = stock_data['Close'].pct_change() * stock_data['Signal'].shift(1)
+
+# Handle any NaN values that could arise from shifting
+stock_data['Returns'].fillna(0, inplace=True)
 
 # Calculate cumulative returns from the strategy
 stock_data['Cumulative Returns'] = (1 + stock_data['Returns']).cumprod()
