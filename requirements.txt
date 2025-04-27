@@ -1,5 +1,6 @@
 streamlit
-backtrader
 pandas
-requests
+yfinance
+backtrader
 matplotlib
+Pillow
