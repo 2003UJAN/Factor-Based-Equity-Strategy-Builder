@@ -1,5 +1,9 @@
 # app.py
 import streamlit as st
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from utils import fetch_price_data
 from backtest_engine import run_backtest
 from PIL import Image
@@ -10,7 +14,7 @@ st.set_page_config(page_title="📈 Factor-Based Strategy Builder", page_icon="�
 st.title("💥 Factor-Based Equity Strategy Builder")
 st.markdown("Build and backtest strategies based on financial ratios!")
 
-# 🎯 Sidebar for user input
+# Sidebar for user input 🎛️
 st.sidebar.header("User Configuration 🎛️")
 
 symbol = st.sidebar.text_input("Stock Symbol (e.g., AAPL, MSFT)", value="AAPL")
@@ -24,7 +28,7 @@ ascending = st.sidebar.radio("Factor Order", ["Ascending", "Descending"]) == "As
 
 run_button = st.sidebar.button("🚀 Run Backtest")
 
-# 🎯 Main Area
+# Main Area
 if run_button:
     try:
         with st.spinner("Fetching data and running backtest..."):
