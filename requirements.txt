@@ -1,7 +1,5 @@
+yfinance
+alpha_vantage
 streamlit
 pandas
-yfinance
-backtrader
-matplotlib
-fpdf
-Pillow
+python-dotenv
